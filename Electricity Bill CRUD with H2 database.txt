@@ -1,0 +1,298 @@
+create a spring boot Rest API Application 
+for Electricity Bill CRUD with H2 database.
+=============================================
+Reuired Files Are
+===================
+1. Electricity.java --> @entity+@Id+@GeneratedValue+@Column+@Table
+2. ElectricityRepo.java (I)-> @Repository
+3. ElectricityService.java (I) with CRUD ope abstracted methods
+4. ElectricityServiceImp.java (C) --> @Service
+5.  ElectricityController.java  (C) --> @RestController={@Controller                                                             +@ResponseBody)
+6.application.properties --> port no code+ DB conn stmt+JPA Properties
+7. Application.java --> @SpringBootApplication
+==============================================
+Required Jars Are
+-------------------
+1. Spring  web
+2. spring boot Dev Tools
+3. spring data jpa
+4. MySQl driver/Oracle Driver/H2 driver (in-memory) 
+=======================================================
+Electricity.java 
+------------------
+package com.rest.model;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+@Entity
+public class Electricity
+{
+@Id
+@GeneratedValue(strategy = GenerationType.AUTO)
+private int cid;
+private String cname;
+private int current_reading;
+private int previous_reading;
+private int units;
+private double totalBill;
+//PDC+PPC+PSM+PGM+toString()
+public Electricity() {
+	super();
+}
+public Electricity(int cid, String cname, int current_reading, int previous_reading, int units, double totalBill) {
+	super();
+	this.cid = cid;
+	this.cname = cname;
+	this.current_reading = current_reading;
+	this.previous_reading = previous_reading;
+	this.units = units;
+	this.totalBill = totalBill;
+}
+public int getCid() {
+	return cid;
+}
+public void setCid(int cid) {
+	this.cid = cid;
+}
+public String getCname() {
+	return cname;
+}
+public void setCname(String cname) {
+	this.cname = cname;
+}
+public int getCurrent_reading() {
+	return current_reading;
+}
+public void setCurrent_reading(int current_reading) {
+	this.current_reading = current_reading;
+}
+public int getPrevious_reading() {
+	return previous_reading;
+}
+public void setPrevious_reading(int previous_reading) {
+	this.previous_reading = previous_reading;
+}
+public int getUnits() {
+	return units;
+}
+public void setUnits(int units) {
+	this.units = units;
+}
+public double getTotalBill() {
+	return totalBill;
+}
+public void setTotalBill(double totalBill) {
+	this.totalBill = totalBill;
+}
+@Override
+public String toString() {
+	return "Electricity [cid=" + cid + ", cname=" + cname + ", current_reading=" + current_reading
+			+ ", previous_reading=" + previous_reading + ", units=" + units + ", totalBill=" + totalBill + "]";
+}
+}
+===========================================================================
+ ElectricityRepo.java  (I)
+--------------------------------
+package com.rest.repo;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.rest.model.Electricity;
+
+@Repository
+public interface ElectricityRepo extends JpaRepository<Electricity, Integer> {
+
+}
+
+
+=========================================================================================
+application.properties
+---------------------------
+server.port:9000
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+
+===========================================================================================
+ElectricityService.java   (I)
+--------------------------------------
+package com.rest.service;
+
+import java.util.List;
+
+import com.rest.model.Electricity;
+
+public interface ElectricityService {
+	
+	public Electricity saveRecord(Electricity electricity);
+	public Electricity updateRecord(Electricity electricity,int cid);
+	public void deleteRecord(int cid);
+	public Electricity getOneRecord(int cid);
+	public List<Electricity> getAllRecord();
+}
+===============================================================================================
+
+ElectricityServiceImp.java
+-----------------------------------------------------
+
+package com.rest.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.rest.model.Electricity;
+import com.rest.repo.ElectricityRepo;
+
+@Service
+public class ElectricityServiceImp implements ElectricityService {
+
+	@Autowired
+	private ElectricityRepo electricityRepo;
+	@Override
+	public Electricity saveRecord(Electricity electricity) {
+
+		int unts=0;
+		double total=0.0;
+		unts=electricity.getCurrent_reading()-electricity.getPrevious_reading();
+		electricity.setUnits(unts);
+		if(unts<300)
+		{
+			total=unts*1.75;
+		}
+		else if(unts>=300 && unts<500)
+		{
+			total=unts*3.75;
+		}
+		else if(unts>=500)
+		{
+			total=unts*7.35;
+		}
+		electricity.setTotalBill(total);
+		Electricity e=electricityRepo.save(electricity);
+		return e;
+	}
+
+	@Override
+	public Electricity getOneRecord(int cid) {
+		Electricity get=electricityRepo.findById(cid).get();
+		return get;
+	}
+	@Override
+	public List<Electricity> getAllRecord() {
+		List<Electricity> getAll=electricityRepo.findAll();
+		return getAll;
+	}
+	
+	@Override
+	public void deleteRecord(int cid) {
+		electricityRepo.deleteById(cid);
+	}
+
+	
+	
+	
+	@Override
+	public Electricity updateRecord(Electricity electricity, int cid) {
+		Electricity oldRecord=electricityRepo.findById(cid).get();
+		oldRecord.setCname(electricity.getCname());
+		oldRecord.setCurrent_reading(electricity.getCurrent_reading());
+		oldRecord.setPrevious_reading(electricity.getPrevious_reading());
+		int unts=0;
+		double total=0.0;
+		unts=electricity.getCurrent_reading()-electricity.getPrevious_reading();
+		electricity.setUnits(unts);
+		if(unts<300)
+		{
+			total=unts*1.75;
+		}
+		else if(unts>=300 && unts<500)
+		{
+			total=unts*3.75;
+		}
+		else if(unts>=500)
+		{
+			total=unts*7.35;
+		}
+		oldRecord.setUnits(unts);
+		oldRecord.setTotalBill(total);
+		Electricity e=electricityRepo.save(oldRecord);
+		return e;
+	}	
+}
+====================================================================================================
+ElectricityController.java
+---------------------------------
+
+package com.rest.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.rest.model.Electricity;
+import com.rest.service.ElectricityService;
+import java.util.*;
+@RestController
+public class ElectricityController {
+	@Autowired
+	private ElectricityService  electricityService;
+	@PostMapping("/save")
+	public String saveData(@RequestBody Electricity electricity)
+	{
+		Electricity e1=electricityService.saveRecord(electricity);
+		String message=null;
+		if(e1!=null)	
+		{
+			message="Data Saved Successfully";
+		}
+		else
+		{
+			message="Data Failed";
+		}
+		return message;
+	}
+	@GetMapping("/get/{cid}")
+	public Electricity getOne(@PathVariable int cid)
+	{
+		Electricity get=electricityService.getOneRecord(cid);
+		return 	get;
+	}
+	@GetMapping("/getAll")
+	public List<Electricity> getAll()
+	{
+		List<Electricity> getAll=electricityService.getAllRecord();
+		return getAll;
+	}
+	
+	@DeleteMapping("/delete/{cid}")
+	public void delete(@PathVariable int cid)
+	{
+		electricityService.deleteRecord(cid);
+	}
+	
+	@PutMapping("/update/{cid}")
+	public Electricity update(@RequestBody Electricity electricity,@PathVariable int cid)
+	{
+		Electricity update=electricityService.updateRecord(electricity, cid);
+		return update;
+	}
+
+}
+=======================================================================================================
+
+
+
+
